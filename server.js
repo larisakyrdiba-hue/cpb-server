@@ -1,68 +1,49 @@
 const express = require('express');
 const cors = require('cors');
-const nodemailer = require('nodemailer');
-require('dotenv').config();
+const { Resend } = require('resend');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+// РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Resend РІР°С€РёРј РєР»СЋС‡РѕРј РёР· РїРµСЂРµРјРµРЅРЅС‹С… РѕРєСЂСѓР¶РµРЅРёСЏ Render
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 app.use(cors());
+app.use(express.json());
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.gmail.com',
-    port: process.env.SMTP_PORT || 587,
-    secure: false,
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-    }
-});
-
+// РњР°СЂС€СЂСѓС‚ РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ Р·Р°СЏРІРѕРє СЃ СЃР°Р№С‚Р°
 app.post('/api/lead', async (req, res) => {
+    const { name, phone, objectType, messenger, comment } = req.body;
+
+    if (!name || !phone) {
+        return res.status(400).json({ success: false, message: 'РРјСЏ Рё С‚РµР»РµС„РѕРЅ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹ РґР»СЏ Р·Р°РїРѕР»РЅРµРЅРёСЏ.' });
+    }
+
     try {
-        const { name, phone, objectType, messenger, comment } = req.body;
-
-        if (!phone) {
-            return res.status(400).json({ success: false, message: 'Номер телефона обязателен' });
-        }
-
-        const mailOptions = {
-            from: `"ЦПБ Защита Сайт" <${process.env.SMTP_USER}>`,
-            to: 'cpbprotection@gmail.com',
-            subject: 'Новая заявка с сайта ЦПБ «Защита»!',
-            text: `
-Новая заявка с сайта:
-
-Имя: ${name}
-Телефон: ${phone}
-Тип объекта: ${objectType}
-Связь через: ${messenger}
-Комментарий: ${comment}
-            `,
+        // РћС‚РїСЂР°РІРєР° РїРёСЃСЊРјР° С‡РµСЂРµР· Resend API
+        const data = await resend.emails.send({
+            from: 'CPB Zashchita <onboarding@resend.dev>', // РћС„РёС†РёР°Р»СЊРЅС‹Р№ С‚РµСЃС‚РѕРІС‹Р№ РґРѕРјРµРЅ Resend (СЂР°Р±РѕС‚Р°РµС‚ Р±РµР· РЅР°СЃС‚СЂРѕР№РєРё РґРѕРјРµРЅР°)
+            to: ['cpbprotection@gmail.com'],             // РџРѕС‡С‚Р°, РєСѓРґР° РїСЂРёС…РѕРґСЏС‚ Р·Р°СЏРІРєРё
+            subject: 'рџ”” РќРѕРІР°СЏ Р·Р°СЏРІРєР° СЃ СЃР°Р№С‚Р° Р¦РџР‘ В«Р—Р°С‰РёС‚Р°В»!',
             html: `
-                <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f6f4; border-radius: 10px;">
-                    <h2 style="color: #bf0603; border-bottom: 2px solid #d4af37; padding-bottom: 10px;">Новая заявка с сайта ЦПБ «Защита»</h2>
-                    <p><strong>Имя:</strong> ${name}</p>
-                    <p><strong>Телефон:</strong> <a href="tel:${phone}">${phone}</a></p>
-                    <p><strong>Тип объекта:</strong> ${objectType}</p>
-                    <p><strong>Способ связи:</strong> ${messenger}</p>
-                    <p><strong>Комментарий:</strong> ${comment}</p>
-                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
-                    <p style="font-size: 12px; color: #666;">Письмо сформировано автоматически с вашего сайта.</p>
-                </div>
+                <h2>РџРѕСЃС‚СѓРїРёР»Р° РЅРѕРІР°СЏ Р·Р°СЏРІРєР° СЃ СЃР°Р№С‚Р°!</h2>
+                <p><strong>РРјСЏ:</strong> ${name}</p>
+                <p><strong>РўРµР»РµС„РѕРЅ:</strong> ${phone}</p>
+                <p><strong>РўРёРї РѕР±СЉРµРєС‚Р°:</strong> ${objectType || 'РќРµ СѓРєР°Р·Р°РЅ'}</p>
+                <p><strong>РЎРїРѕСЃРѕР± СЃРІСЏР·Рё:</strong> ${messenger || 'РќРµ СѓРєР°Р·Р°РЅ'}</p>
+                <p><strong>РљРѕРјРјРµРЅС‚Р°СЂРёР№:</strong> ${comment || 'РќРµС‚ РєРѕРјРјРµРЅС‚Р°СЂРёСЏ'}</p>
             `
-        };
+        });
 
-        await transporter.sendMail(mailOptions);
-        return res.status(200).json({ success: true, message: 'Письмо успешно отправлено' });
+        console.log('РџРёСЃСЊРјРѕ СѓСЃРїРµС€РЅРѕ РѕС‚РїСЂР°РІР»РµРЅРѕ:', data);
+        res.status(200).json({ success: true, message: 'Р—Р°СЏРІРєР° СѓСЃРїРµС€РЅРѕ РѕС‚РїСЂР°РІР»РµРЅР°!' });
 
     } catch (error) {
-        console.error('Ошибка отправки письма:', error);
-        return res.status(500).json({ success: false, message: 'Ошибка сервера при отправке письма' });
+        console.error('РћС€РёР±РєР° РѕС‚РїСЂР°РІРєРё РїРёСЃСЊРјР° С‡РµСЂРµР· Resend:', error);
+        res.status(500).json({ success: false, message: 'РћС€РёР±РєР° СЃРµСЂРІРµСЂР° РїСЂРё РѕС‚РїСЂР°РІРєРµ СЃРѕРѕР±С‰РµРЅРёСЏ.' });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`Сервер бэкенда запущен на порту ${PORT}`);
+    console.log(`РЎРµСЂРІРµСЂ СѓСЃРїРµС€РЅРѕ Р·Р°РїСѓС‰РµРЅ РЅР° РїРѕСЂС‚Сѓ ${PORT}`);
 });
