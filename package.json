@@ -1,7 +1,7 @@
 {
   "name": "cpb-server",
   "version": "1.0.0",
-  "description": "Backend for CPB Zashchita",
+  "description": "Backend for CPB Zashchita leads",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,6 +9,6 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
-    "resend": "^3.2.0"
+    "nodemailer": "^6.9.13"
   }
 }
