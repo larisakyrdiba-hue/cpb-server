@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 // Инициализация Resend с вашим ключом
-const resend = new Resend('re_Pt9ZCm5s_KCW9QX9SSn6DBeY93J82bF');
+const resend = new Resend('re_QvEdRBKH_FUV1sKEToYcNq8vn3JQkoNiu');
 
 // Маршрут для получения заявок с сайта
 app.post('/api/lead', async (req, res) => {
